@@ -2,6 +2,7 @@ package br.com.classapp.RNSensitiveInfo;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.support.annotation.NonNull;
 
 import com.facebook.react.bridge.*;
 
@@ -9,6 +10,7 @@ import java.util.Map;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
+  private static final String DEFAULT_SHARED_PREFS_NAME = "app";
   private SharedPreferences mSharedPreferences;
 
   public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
@@ -23,59 +25,38 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void getItem(String key, ReadableMap options, Promise pm) {
 
-    String name = options.getString("sharedPreferencesName");
-    if (name == null) {
-      name = "app";
-    }
+    String name = sharedPreferencesName(options);
 
-    mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
-    String value = mSharedPreferences.getString(key, null);
+    String value = sharedPreferences(name).getString(key, null);
     pm.resolve(value);
-
   }
 
   @ReactMethod
   public void setItem(String key, String value, ReadableMap options) {
 
-    String name = options.getString("sharedPreferencesName");
-    if (name == null) {
-      name = "app";
-    }
+    String name = sharedPreferencesName(options);
 
-    mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
-
-    putExtra(key, value, mSharedPreferences );
+    putExtra(key, value, sharedPreferences(name));
   }
-
 
   @ReactMethod
   public void deleteItem(String key, ReadableMap options) {
 
-    String name = options.getString("sharedPreferencesName");
-    if (name == null) {
-      name = "app";
-    }
+    String name = sharedPreferencesName(options);
 
-    mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
+    SharedPreferences mSharedPreferences = sharedPreferences(name);
 
     SharedPreferences.Editor editor = mSharedPreferences.edit();
 
     editor.remove(key).apply();
   }
 
-
-
   @ReactMethod
   public void getAllItems(ReadableMap options, Promise pm) {
 
-    String name = options.getString("sharedPreferencesName");
-    if (name == null) {
-      name = "app";
-    }
+    String name = sharedPreferencesName(options);
 
-    mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
-
-    Map<String, ?> allEntries = mSharedPreferences.getAll();
+    Map<String, ?> allEntries = sharedPreferences(name).getAll();
     WritableMap resultData = new WritableNativeMap();
 
     for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
@@ -97,5 +78,22 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     } else if (value instanceof Float) {
       editor.putFloat(key, (Float) value).apply();
     }
+  }
+
+  private SharedPreferences sharedPreferences(String name) {
+    if(mSharedPreferences == null) {
+      mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
+    }
+
+    return mSharedPreferences;
+  }
+
+  @NonNull
+  private String sharedPreferencesName(ReadableMap options) {
+    String name = options.hasKey("sharedPreferencesName") ? options.getString("sharedPreferencesName") : DEFAULT_SHARED_PREFS_NAME;
+    if (name == null) {
+      name = DEFAULT_SHARED_PREFS_NAME;
+    }
+    return name;
   }
 }
